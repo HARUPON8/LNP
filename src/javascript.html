@@ -1,0 +1,151 @@
+<script>
+  /**
+   * Ver 8.3.0
+   * 変更内容: 
+   * 1. renderWeeklyForecast関数内の描画ループを「i = 1（明日）」から走査開始させ、週間予報リストから本日のセルを完全追放。
+   * 2. タイムライン24H骨組み生成の先行配置一元化およびエラー防衛シールド関数の完全維持。
+   * 3. 現金支出フォーム送信制御およびwindow.onloadデュアル・イグニッションの完全維持。
+   */
+
+  // 1. タイムラインの骨組み生成（先行配置型）
+  function generateTimelineSkeleton() {
+    const container = document.getElementById('timeline-box');
+    if (!container) return;
+    container.innerHTML = '';
+
+    for (let i = 0; i < 24; i++) {
+      const row = document.createElement('div');
+      row.className = 'time-cell-row border-bottom d-flex align-items-center';
+
+      const timeLabel = document.createElement('div');
+      timeLabel.className = 'slot-time fw-bold text-muted';
+      timeLabel.innerText = i + ':00';
+
+      const content = document.createElement('div');
+      content.className = 'slot-bar-content time-cell-placeholder'; // プレースホルダーで視覚化
+      content.id = 'slot-bar-' + i;
+
+      row.appendChild(timeLabel);
+      row.appendChild(content);
+      container.appendChild(row);
+    }
+  }
+
+  // 2. 週間天気予報の精密レンダリング（0番目の本日をスキップし、明日以降の7日間をリスト展開）
+  function renderWeeklyForecast(weeklyForecast) {
+    const container = document.getElementById('weekly-forecast-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    // i = 1（明日）から開始することで、本日分の表示をスキップし、明日以降の7日間のみを正確にループ
+    for (let i = 1; i < weeklyForecast.length; i++) {
+      const dayData = weeklyForecast[i];
+      const card = document.createElement('div');
+      card.className = 'forecast-card p-2 text-center';
+
+      // stylesheet.htmlのレスポンシブ3セクション（日にち➔天気➔温度）幅固定に完全連動
+      card.innerHTML = `
+      <div class="day-label">${dayData.day}</div>
+      <div class="weather-label">
+        <span class="weather-icon">${dayData.icon}</span>
+        <span class="weather-text">${dayData.weather}</span>
+      </div>
+      <div class="temp-label">${dayData.temp}</div>
+    `;
+      container.appendChild(card);
+    }
+  }
+
+  // 3. 非同期通信キックエンジン（loadWeatherOnly）
+  function loadWeatherOnly() {
+    const loader = document.getElementById('timeline-loading');
+    if (loader) loader.style.display = 'block';
+
+    google.script.run
+      .withSuccessHandler(function (weeklyForecast) {
+        if (!weeklyForecast || weeklyForecast.length === 0) {
+          console.error("バックエンドからの気象配列が空です。");
+          setSafeInnerText('current-weather-status', "データが空です");
+          if (loader) loader.style.display = 'none';
+          return;
+        }
+
+        console.log("天気データ単独受信成功:", weeklyForecast);
+
+        // [A] 本日の天気トップ枠への単発バインド（常に配列の0番目「本日」を参照）
+        executeSafeBinding("本日天気トップ枠バインド", function () {
+          var todayW = weeklyForecast[0];
+          setSafeHTML('weather-icon', '<span class="fs-1">' + todayW.icon + '</span>');
+          setSafeInnerText('current-weather-status', todayW.day + " : " + todayW.weather + " (" + todayW.temp + ")");
+        });
+
+        // [B] 明日以降の予報リストへの展開（renderWeeklyForecast内部で0番目を自動スキップ）
+        executeSafeBinding("週間予報マルチバインド", function () {
+          renderWeeklyForecast(weeklyForecast);
+        });
+
+        if (loader) loader.style.display = 'none';
+      })
+      .withFailureHandler(function (err) {
+        console.error("気象サーバーとの通信セッションに失敗:", err);
+        setSafeInnerText('current-weather-status', "天気サーバー通信エラー…");
+        if (loader) loader.style.display = 'none';
+      })
+      .getWeeklyWeatherData(); // バックエンドに完備されている気象連動エンジンを直接キック
+  }
+
+  // 4. 要素が存在しない場合のエラー崩壊を防ぐ絶対防衛シールド
+  function setSafeInnerText(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.innerText = text || "--";
+  }
+
+  function setSafeHTML(id, html) {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = html || "";
+  }
+
+  function executeSafeBinding(sectorName, bindingFunction) {
+    try {
+      bindingFunction();
+    } catch (e) {
+      console.warn("バインド例外捕捉 [" + sectorName + "]: ", e.message);
+    }
+  }
+
+  // 5. 画面起動シーケンスの一元化
+  window.onload = function () {
+    generateTimelineSkeleton(); // 1. 24時間軸の骨組みを最速先行配置
+    loadWeatherOnly();          // 2. 天気通信レーンを最速独立点灯
+
+    // 現金手入力クイックフォームの送信バインド（インライン回帰仕様）
+    const form = document.getElementById('quick-expense-form');
+    if (form) {
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const btn = form.querySelector('button[type="submit"]');
+        const amount = document.getElementById('quick-amount').value;
+        const memo = document.getElementById('quick-memo').value;
+        const cat = document.getElementById('quick-category').value;
+
+        btn.disabled = true;
+        btn.innerText = "送信中...";
+
+        google.script.run
+          .withSuccessHandler(function () {
+            form.reset();
+            btn.disabled = false;
+            btn.innerText = "追記完了";
+            setTimeout(function () { btn.innerText = "追記"; }, 2000);
+            loadWeatherOnly(); // 送信成功リロード時も天気を最優先で再点灯
+          })
+          .withFailureHandler(function (error) {
+            alert('追記に失敗しました: ' + error);
+            btn.disabled = false;
+            btn.innerText = "追記";
+          })
+          .saveCashExpense(memo, amount, cat);
+      });
+    }
+  };
+</script>

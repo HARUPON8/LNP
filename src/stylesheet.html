@@ -1,0 +1,266 @@
+<style>
+  /**
+ * Ver 8.4.0
+ * 変更内容: 
+ * 1. fixed-top化に伴い、メイン表示領域がナビバーの裏に潜り込む現象を防ぐ「padding-top: 62px !important;」をbodyへ完全注入
+ * 2. スマホ縦画面時（@media 768px以下）のタイトル文字列・ハンバーガー並列1行化、および週間天気3カラム横並びの完全維持
+ * 3. GAS iframe環境用「絶対スクロール許可シールド」の完全常駐
+ */
+
+  /* ========================================================================
+   [A] 絶対スクロール許可シールド（GAS Webアプリ・iPhone Safari完全防衛）
+   ======================================================================== */
+  html,
+  body {
+    height: auto !important;
+    min-height: 100% !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    /* スマホ特有の引っかかりを無くす慣性スクロール */
+  }
+
+  /* メイン背景 ＆ 追従固定バッファ */
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background-color: #fcfaf2 !important;
+    color: #333333;
+    margin: 0;
+    padding: 0;
+    padding-top: 62px !important;
+    /* [新規追加] ナビゲーションバーの固定に伴うコンテンツ隠れを完全防御 */
+  }
+
+  /* ========================================================================
+   [B] ダッシュボード 共通カードデザイン
+   ======================================================================== */
+  .section-card {
+    border-radius: 8px !important;
+    overflow: hidden;
+    background-color: #ffffff;
+    border: 1px solid #ebdcb9 !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .section-card:hover {
+    box-shadow: 0 6px 12px rgba(85, 107, 47, 0.1) !important;
+  }
+
+  /* 腸活レシピ用ブロックテキスト */
+  .style-recipe-block {
+    line-height: 1.6;
+    letter-spacing: 0.03em;
+    white-space: pre-wrap;
+  }
+
+  /* ========================================================================
+   [C] 天気予報セクター（PC表示：スタイリッシュな横並びグリッドカード）
+   ======================================================================== */
+  #weekly-forecast-container {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .forecast-card {
+    background-color: #ffffff !important;
+    border: 1px solid #ebdcb9 !important;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 1;
+    min-width: 80px;
+  }
+
+  .forecast-card:hover {
+    background-color: #fdfbf7 !important;
+  }
+
+  /* PC環境下での各要素の初期整列 */
+  .forecast-card .day-label {
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-bottom: 4px;
+  }
+
+  .forecast-card .weather-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .forecast-card .weather-icon {
+    font-size: 1.5rem;
+    display: block;
+  }
+
+  .forecast-card .weather-text {
+    font-size: 0.75rem;
+    font-weight: bold;
+    color: #212529;
+    display: block;
+  }
+
+  .forecast-card .temp-label {
+    font-size: 0.7rem;
+    color: #dc3545;
+    margin-top: 4px;
+    font-weight: 500;
+  }
+
+  /* ========================================================================
+   [D] スマホ縦画面時の完全レスポンシブ変換（画面幅768px以下環境）
+   ======================================================================== */
+  @media (max-width: 768px) {
+
+    /* タイトルロゴとハンバーガーメニューの絶対1行パッキング防壁 */
+    .navbar-brand {
+      font-size: 1.05rem !important;
+      white-space: nowrap !important;
+      margin-right: 4px !important;
+      padding-right: 0 !important;
+    }
+
+    .navbar-toggler {
+      padding: 0.25rem 0.45rem !important;
+      font-size: 0.85rem !important;
+    }
+
+    /* 本日の詳細気象ステータスを絶対に改行させず1行にパッキング */
+    #current-weather-status {
+      white-space: nowrap !important;
+      font-size: 0.95rem !important;
+      letter-spacing: -0.02em !important;
+    }
+
+    #weekly-forecast-container {
+      flex-direction: column !important;
+      /* コンテナを縦リストへスイッチ */
+      gap: 0px !important;
+    }
+
+    .forecast-card {
+      flex-direction: row !important;
+      /* カード内部を左から右への横並びへ変換 */
+      justify-content: space-between !important;
+      align-items: center !important;
+      padding: 12px 15px !important;
+      min-width: 100% !important;
+      border-radius: 0px !important;
+      border-end: none !important;
+      border-bottom: 1px solid #e6dfd3 !important;
+      /* 境界線を美しい横線に */
+    }
+
+    /* リストの最上部と最下部だけに角丸を適応させ外枠の美しさを死守 */
+    .forecast-card:first-child {
+      border-radius: 6px 6px 0 0 !important;
+    }
+
+    .forecast-card:last-child {
+      border-radius: 0 0 6px 6px !important;
+      border-bottom: none !important;
+    }
+
+    /* [左側セクター] 日にちの配置幅固定（左寄せ） */
+    .forecast-card .day-label {
+      width: 35% !important;
+      text-align: left !important;
+      font-size: 0.85rem !important;
+      margin-bottom: 0 !important;
+      font-weight: 500;
+    }
+
+    /* [中央セクター] 天気アイコンとテキストのインライン横並び（中央寄りの左揃え） */
+    .forecast-card .weather-label {
+      width: 35% !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: flex-start !important;
+      gap: 8px !important;
+    }
+
+    .forecast-card .weather-icon {
+      font-size: 1.3rem !important;
+    }
+
+    .forecast-card .weather-text {
+      font-size: 0.85rem !important;
+    }
+
+    /* [右側セクター] 温度の配置幅固定（右寄せ） */
+    .forecast-card .temp-label {
+      width: 30% !important;
+      text-align: right !important;
+      font-size: 0.8rem !important;
+      margin-top: 0 !important;
+      font-family: monospace !important;
+      color: #4a593d;
+    }
+  }
+
+  /* ========================================================================
+   [E] CHRONO TIMELINE（24H タイムライン骨組み）
+   ======================================================================== */
+  #timeline-box {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .time-cell-row {
+    display: flex;
+    align-items: center;
+    min-height: 52px;
+    padding: 6px 12px;
+    background-color: #ffffff;
+    transition: background-color 0.15s ease;
+  }
+
+  .time-cell-row:hover {
+    background-color: #faf8f0;
+  }
+
+  .slot-time {
+    width: 60px;
+    flex-shrink: 0;
+    font-size: 0.85rem;
+    font-family: monospace;
+  }
+
+  .slot-bar-content {
+    flex-grow: 1;
+    height: 100%;
+    min-height: 36px;
+    border-radius: 4px;
+    position: relative;
+  }
+
+  .time-cell-placeholder {
+    background-color: #fdfbf7;
+    border: 1px dashed #ced4da;
+  }
+
+  .animate-pulse {
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0% {
+      opacity: 0.6;
+    }
+
+    50% {
+      opacity: 1;
+    }
+
+    100% {
+      opacity: 0.6;
+    }
+  }
+</style>
